@@ -1,0 +1,87 @@
+name: "Canonical Checker"
+description: "Crawl a site and flag doubled paths, mixed hosts, trailing-slash drift and canonical mismatches."
+author: "CalliArc"
+branding:
+  icon: "link"
+  color: "blue"
+
+inputs:
+  url:
+    description: "Start URL or sitemap URL (https://example.com/ or https://example.com/sitemap.xml)."
+    required: true
+  sitemap:
+    description: "Optional extra sitemap URL to check."
+    required: false
+    default: ""
+  max-pages:
+    description: "Maximum number of URLs to fetch."
+    required: false
+    default: "500"
+  concurrency:
+    description: "Parallel requests (keep it low to be polite)."
+    required: false
+    default: "2"
+  delay:
+    description: "Seconds to wait before each request."
+    required: false
+    default: "0.5"
+  fail-on:
+    description: "Fail the step if any issue has at least this severity: none, info, warning, error."
+    required: false
+    default: "error"
+  output-dir:
+    description: "Directory for canonical-report.json and canonical-report.csv."
+    required: false
+    default: "canonical-checker-report"
+  extra-args:
+    description: "Additional CLI arguments, e.g. '--sitemap-only --ignore-robots'."
+    required: false
+    default: ""
+  python-version:
+    description: "Python version used to run the checker."
+    required: false
+    default: "3.12"
+
+outputs:
+  json-report:
+    description: "Path to the JSON report."
+    value: ${{ steps.run.outputs.json }}
+  csv-report:
+    description: "Path to the CSV report."
+    value: ${{ steps.run.outputs.csv }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install canonical-checker
+      shell: bash
+      run: python -m pip install --disable-pip-version-check --quiet "$GITHUB_ACTION_PATH"
+
+    - name: Run canonical-checker
+      id: run
+      shell: bash
+      env:
+        CC_URL: ${{ inputs.url }}
+        CC_SITEMAP: ${{ inputs.sitemap }}
+        CC_MAX_PAGES: ${{ inputs.max-pages }}
+        CC_CONCURRENCY: ${{ inputs.concurrency }}
+        CC_DELAY: ${{ inputs.delay }}
+        CC_FAIL_ON: ${{ inputs.fail-on }}
+        CC_OUT: ${{ inputs.output-dir }}
+        CC_EXTRA: ${{ inputs.extra-args }}
+      run: |
+        mkdir -p "$CC_OUT"
+        args=("$CC_URL" --max-pages "$CC_MAX_PAGES" --concurrency "$CC_CONCURRENCY"
+              --delay "$CC_DELAY" --fail-on "$CC_FAIL_ON"
+              --json "$CC_OUT/canonical-report.json" --csv "$CC_OUT/canonical-report.csv")
+        if [ -n "$CC_SITEMAP" ]; then args+=(--sitemap "$CC_SITEMAP"); fi
+        # Intentionally word-split extra-args into separate CLI flags.
+        # shellcheck disable=SC2206
+        extra=($CC_EXTRA)
+        echo "json=$CC_OUT/canonical-report.json" >> "$GITHUB_OUTPUT"
+        echo "csv=$CC_OUT/canonical-report.csv" >> "$GITHUB_OUTPUT"
+        COLUMNS=160 canonical-checker "${args[@]}" "${extra[@]}"

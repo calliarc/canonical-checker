@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "canonical-checker"
+version = "0.1.0"
+description = "CLI that crawls a site and flags doubled paths, mixed hosts and canonical mismatches."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "CalliArc" }]
+keywords = ["seo", "canonical", "crawler", "search-console", "cli", "sitemap"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Internet :: WWW/HTTP :: Site Management :: Link Checking",
+]
+dependencies = [
+    "httpx>=0.25",
+    "selectolax>=0.3.17",
+    "typer>=0.9",
+    "rich>=13",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.4"]
+
+[project.scripts]
+canonical-checker = "canonical_checker.cli:run"
+
+[project.urls]
+Homepage = "https://github.com/calliarc/canonical-checker"
+Issues = "https://github.com/calliarc/canonical-checker/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer declares options as call defaults and reads typing.List/Optional.
+"src/canonical_checker/cli.py" = ["B008", "UP006", "UP007", "UP035", "UP045"]
